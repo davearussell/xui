@@ -1,0 +1,11 @@
+[project]
+name = "xui"
+version = "0.1.0"
+description = "A pygame GUI library"
+dependencies = [
+  "pygame",
+]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
