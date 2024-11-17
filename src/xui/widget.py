@@ -29,6 +29,8 @@ class Widget:
     spacing = 0
     border_thickness = 0
 
+    enabled = True
+
     # Default settings (not all widgets use all of these)
     color = 'white'
     bgcolor = None
@@ -39,7 +41,7 @@ class Widget:
     font_size = 20
 
 
-    def __init__(self, children=None, **kwargs):
+    def __init__(self, children=None, enabled=True, **kwargs):
         self.children = children or []
         self.parent = None
         self.depth = 0
@@ -60,6 +62,12 @@ class Widget:
         self.mouse_down_child = {button: None for button in MOUSE_BUTTONS.values()}
         self.has_mouse_focus = False
         self.has_focus = False
+        if enabled != self.enabled:
+            self.set_enabled(enabled)
+
+    def set_enabled(self, enabled):
+        self.enabled = enabled
+        self.redraw()
 
     def _apply_settings(self, settings):
         relevant = {k: v for k, v in settings.items() if k.islower()}
@@ -341,6 +349,12 @@ class Widget:
         if self._redraw:
             return [self]
         return [widget for child in self.children for widget in child.to_redraw()]
+
+    def render_text(self, text, font=None, size=None, color=None, bgcolor=None):
+        font_obj = pygame.font.SysFont(font or self.font, size or self.font_size)
+        if color is None:
+            color = self.color if self.enabled else self.disabled_color
+        return font_obj.render(text, True, color, bgcolor=bgcolor)
 
     def draw(self):
         if self.bgcolor:
