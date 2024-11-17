@@ -4,7 +4,7 @@ import pygame
 import pygame.locals
 
 from . import keys
-from .widget import Stack, NEEDS_REDRAW, NEEDS_LAYOUT
+from .widget import Widget, Stack, NEEDS_REDRAW, NEEDS_LAYOUT
 
 TIMER_EVENT = pygame.USEREVENT + 1
 
@@ -72,6 +72,10 @@ class App:
 
     def log(self, msg):
         print("%.3fs: %s" % (time.time() - self.t0, msg))
+
+    def apply_settings(self, settings):
+        Widget.set_default_settings(settings)
+        self.window.apply_settings(settings)
 
     def start_event_timer(self, delay_s):
         millis = max(1, int(delay_s * 1000))

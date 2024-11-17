@@ -40,6 +40,9 @@ class LayoutError(Exception):
     pass
 
 class Widget:
+    default_settings = {}
+    id = None
+
     fixed_width = False
     fixed_height = False
     width = 0
@@ -64,10 +67,38 @@ class Widget:
         self.flags = NEEDS_LAYOUT
         self.root = self
         self.focus_widget = None
+        self._override = set()
         for k, v in kwargs.items():
             if not hasattr(self, k):
                 raise Exception("%s does not have attribute %r" % (type(self).__name__, k))
             setattr(self, k, v)
+            self._override.add(k)
+        self.apply_settings(self.default_settings)
+
+    @classmethod
+    def set_default_settings(cls, settings):
+        cls.default_settings = settings
+
+    def child_settings(self, child, settings):
+        return settings
+
+    def apply_settings(self, settings, recurse=True):
+        relevant = {k: settings[k] for k in settings if k[0].islower()}
+        for identifier in [self.id] + [cls.__name__ for cls in type(self).__mro__]:
+            if identifier in settings:
+                for k, v in settings[identifier].items():
+                    if k not in relevant:
+                        relevant[k] = v
+
+        for k, v in relevant.items():
+            if hasattr(self, k) and getattr(self, k) != v and k not in self._override:
+                self.log("%s: set %s = %r" % (type(self).__name__, k, v))
+                setattr(self, k, v)
+                self.flags |= NEEDS_LAYOUT
+
+        if recurse:
+            for child in self.children:
+                child.apply_settings(self.child_settings(child, settings))
 
     @property
     def size(self):
