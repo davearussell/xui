@@ -3,7 +3,7 @@ name = "xui"
 version = "0.1.0"
 description = "A pygame GUI library"
 dependencies = [
-  "pygame",
+  "pygame-ce",
 ]
 
 [build-system]
