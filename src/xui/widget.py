@@ -102,6 +102,9 @@ class Widget:
     def has_focus(self):
         return self.root.focus_widget == self
 
+    def handle_keydown(self, event, keystroke):
+        return False
+
     def min_contents_width(self):
         return max(child.min_width() for child in self.children) if self.children else 0
 

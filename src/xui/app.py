@@ -3,6 +3,7 @@ import time
 import pygame
 import pygame.locals
 
+from . import keys
 from .widget import Stack, NEEDS_REDRAW, NEEDS_LAYOUT
 
 TIMER_EVENT = pygame.USEREVENT + 1
@@ -19,6 +20,17 @@ class Window(Stack):
         self.surface = pygame.display.set_mode(flags=pygame.FULLSCREEN)
         self.rect = self.surface.get_rect()
         self.size = self.rect.size
+
+    def focus(self):
+        raise Exception("Cannot focus main window")
+
+    def handle_keydown(self, event, keystroke):
+        widget = self.focus_widget
+        while widget is not self:
+            if widget.handle_keydown(event, keystroke):
+                return True
+            widget = widget.parent
+        return False
 
     def flagged_widgets(self, flag):
         to_check = [self]
@@ -72,6 +84,13 @@ class App:
         self.timers.append((expiry, fn, args, kwargs))
         self.timers.sort()
 
+    def handle_keydown_event(self, event):
+        keystroke = keys.event_keystroke(event)
+        if keystroke is None:
+            return
+        if not self.window.handle_keydown(event, keystroke):
+            self.unhandled_keydown_hook(event, keystroke)
+
     def check_timers(self):
         now = time.time()
         while self.timers and (self.timers[0][0] - .002) < now:
@@ -85,6 +104,8 @@ class App:
     def handle_event(self, event):
         if event.type == pygame.locals.QUIT:
             self.exiting = True
+        elif event.type == pygame.locals.KEYDOWN:
+            self.handle_keydown_event(event)
         elif event.type == TIMER_EVENT:
             self.check_timers()
         elif event.type in [pygame.locals.WINDOWFOCUSGAINED, pygame.locals.WINDOWSHOWN]:
@@ -116,6 +137,9 @@ class App:
 
     def quit(self):
         self.exiting = True
+
+    def unhandled_keydown_hook(self, event, keystroke):
+        return False
 
     def idle_hook(self, deadline):
         pass
