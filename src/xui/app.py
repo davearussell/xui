@@ -3,6 +3,7 @@ import time
 import pygame
 import pygame.locals
 
+from . import keys
 from .widget import Widget
 
 TIMER_EVENT = pygame.USEREVENT + 1
@@ -23,6 +24,24 @@ class Screen(Widget):
         self.rect = self.surface.get_rect()
         self.size = self.rect.size
         self.focus_widget = None
+
+    def handle_keydown(self, event, keystroke):
+        """Tries to find a widget to handle this keystroke, returning True if so or
+        False if no widgets wanted it.
+
+        Starts with the focus widget. If a widget rejects the keystroke, tries the
+        widget's parent next. Alternatively a widget can delegate a different widget
+        to handle the keystroke."""
+        widget = self.focus_widget
+        while widget and widget is not self:
+            result = widget.handle_keydown(event, keystroke)
+            if isinstance(result, Widget):
+                widget = result
+            elif result:
+                return True
+            else:
+                widget = widget.parent
+        return False
 
     def update(self):
         updated = False
@@ -123,6 +142,13 @@ class App:
         if token in self.timers:
             self.timers.remove(token)
 
+    def handle_keydown_event(self, event):
+        keystroke = keys.event_keystroke(event)
+        if keystroke is None:
+            return
+        if not self.screen.handle_keydown(event, keystroke):
+            self.unhandled_keydown_hook(event, keystroke)
+
     def check_timers(self):
         now = time.time()
         while self.timers and (self.timers[0][0] - .002) < now:
@@ -136,6 +162,8 @@ class App:
     def handle_event(self, event):
         if event.type == pygame.locals.QUIT:
             self.exiting = True
+        elif event.type == pygame.locals.KEYDOWN:
+            self.handle_keydown_event(event)
         elif event.type == TIMER_EVENT:
             self.check_timers()
         elif event.type in [pygame.locals.WINDOWFOCUSGAINED, pygame.locals.WINDOWSHOWN]:
@@ -166,6 +194,9 @@ class App:
 
     def quit(self):
         self.exiting = True
+
+    def unhandled_keydown_hook(self, event, keystroke):
+        pass
 
     def idle_hook(self, deadline):
         pass
