@@ -45,6 +45,7 @@ class Widget:
             if not hasattr(self, k):
                 raise Exception("%s does not have attribute %r" % (type(self).__name__, k))
             setattr(self, k, v)
+        self.has_focus = False
 
     @property
     def size(self):
@@ -63,6 +64,33 @@ class Widget:
 
     def __repr__(self):
         return "%s at %r" % (type(self).__name__, self.rect)
+
+    def focus(self):
+        self.log("Focus %r" % (self,))
+        old_focus = self.root.focus_widget
+        if old_focus is self:
+            return
+        self.root.focus_widget = self
+        if old_focus:
+            old_focus.has_focus = False
+            old_focus.focus_lost()
+        self.has_focus = True
+        self.focus_gained()
+        self.redraw()
+
+    def unfocus(self):
+        self.log("Unfocus %r" % (self,))
+        assert self.root.focus_widget is self
+        self.root.focus_widget = None
+        self.has_focus = False
+        self.focus_lost()
+        self.redraw()
+
+    def focus_gained(self):
+        pass
+
+    def focus_lost(self):
+        pass
 
     def min_contents_width(self):
         return max(child.min_width() for child in self.children) if self.children else 0

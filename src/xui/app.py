@@ -20,6 +20,7 @@ class Screen(Widget):
         self.surface = pygame.display.set_mode(flags=pygame.FULLSCREEN)
         self.rect = self.surface.get_rect()
         self.size = self.rect.size
+        self.focus_widget = None
 
     def update(self):
         updated = False
