@@ -5,6 +5,8 @@ import pygame.locals
 
 from .widget import Widget
 
+TIMER_EVENT = pygame.USEREVENT + 1
+
 
 class Screen(Widget):
     fixed_width = True
@@ -90,6 +92,7 @@ class App:
         pygame.init()
         self.screen = Screen(self)
         self.size = self.screen.size
+        self.timers = []
         self.exiting = False
         self.clock = pygame.time.Clock()
         self.t0 = time.time()
@@ -103,9 +106,38 @@ class App:
     def log(self, msg):
         print("%.3fs: %s" % (time.time() - self.t0, msg))
 
+    def start_event_timer(self, delay_s):
+        millis = max(1, int(delay_s * 1000))
+        pygame.time.set_timer(TIMER_EVENT, millis=millis, loops=1)
+
+    def call_later(self, delay_s, fn, *args, **kwargs):
+        expiry = time.time() + delay_s
+        if not self.timers or expiry < self.timers[0][0]:
+            self.start_event_timer(delay_s)
+        token = (expiry, fn, args, kwargs)
+        self.timers.append(token)
+        self.timers.sort()
+        return token
+
+    def cancel_call(self, token):
+        if token in self.timers:
+            self.timers.remove(token)
+
+    def check_timers(self):
+        now = time.time()
+        while self.timers and (self.timers[0][0] - .002) < now:
+            # if a timer is up to 2ms in the future, fire it now: if we go to sleep again
+            # now, then it would be very late by the time we wake up again and fire it.
+            _, fn, args, kwargs = self.timers.pop(0)
+            fn(*args, **kwargs)
+        if self.timers:
+            self.start_event_timer(self.timers[0][0] - now)
+
     def handle_event(self, event):
         if event.type == pygame.locals.QUIT:
             self.exiting = True
+        elif event.type == TIMER_EVENT:
+            self.check_timers()
         elif event.type in [pygame.locals.WINDOWFOCUSGAINED, pygame.locals.WINDOWSHOWN]:
             self.screen.redraw()
         else:
@@ -118,18 +150,25 @@ class App:
             any_events |= self.handle_event(event)
         return any_events
 
+    def idle(self, deadline):
+        self.idle_hook(deadline)
+        self.clock.tick(self.framerate)
+
     def run(self):
         self.screen.update()
         while not self.exiting:
             now = time.time()
             if not self.handle_events():
-                self.clock.tick(self.framerate)
+                self.idle(now + 1 / self.framerate)
             self.screen.update()
         self.pre_exit_hook()
         pygame.quit()
 
     def quit(self):
         self.exiting = True
+
+    def idle_hook(self, deadline):
+        pass
 
     def pre_exit_hook(self):
         pass

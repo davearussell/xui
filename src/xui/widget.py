@@ -65,6 +65,12 @@ class Widget:
     def __repr__(self):
         return "%s at %r" % (type(self).__name__, self.rect)
 
+    def call_later(self, delay, fn, *args, **kwargs):
+        return self.root.app.call_later(delay, fn, *args, **kwargs)
+
+    def cancel_call(self, token):
+        self.root.app.cancel_call(token)
+
     def focus(self):
         self.log("Focus %r" % (self,))
         old_focus = self.root.focus_widget
