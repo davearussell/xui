@@ -63,6 +63,7 @@ class Widget:
         self.bg_surface = None # used only if self.is_overlay()
         self.flags = NEEDS_LAYOUT
         self.root = self
+        self.focus_widget = None
         for k, v in kwargs.items():
             if not hasattr(self, k):
                 raise Exception("%s does not have attribute %r" % (type(self).__name__, k))
@@ -85,6 +86,21 @@ class Widget:
 
     def __repr__(self):
         return "%s at %r" % (type(self).__name__, self.rect)
+
+    def unfocus(self):
+        self.log("Unfocus %r" % (self,))
+        assert self.root.focus_widget is self
+        self.root.focus_widget = None
+
+    def focus(self):
+        self.log("Focus %r" % (self,))
+        if self.root.focus_widget:
+            self.root.focus_widget.unfocus()
+        self.root.focus_widget = self
+
+    @property
+    def has_focus(self):
+        return self.root.focus_widget == self
 
     def min_contents_width(self):
         return max(child.min_width() for child in self.children) if self.children else 0
