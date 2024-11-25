@@ -1,6 +1,7 @@
 import os
 
 import pygame
+from .mouse import MOUSE_BUTTONS
 
 DEBUG = os.environ.get('DEBUG')
 
@@ -45,6 +46,9 @@ class Widget:
             if not hasattr(self, k):
                 raise Exception("%s does not have attribute %r" % (type(self).__name__, k))
             setattr(self, k, v)
+        self.mouse_in_children = set()
+        self.mouse_down_child = {button: None for button in MOUSE_BUTTONS.values()}
+        self.has_mouse_focus = False
         self.has_focus = False
 
     @property
@@ -100,6 +104,52 @@ class Widget:
 
     def handle_keydown(self, event, keystroke):
         return False
+
+    def mouse_rel_pos(self, pos):
+        if pos is None or not self.rel_rect.collidepoint(pos):
+            return None
+        return (pos[0] - self.rel_rect.left, pos[1] - self.rel_rect.top)
+
+    def handle_mouse_down(self, button, pos):
+        # Iter children in reverse. For most containers, order is not
+        # important as children cannot overlap. For Stacks, we want the
+        # frontmost child to have priority on handling the click.
+        for child in self.children[::-1]:
+            rel_pos = child.mouse_rel_pos(pos)
+            if rel_pos and child.handle_mouse_down(button, rel_pos):
+                self.mouse_down_child[button] = child
+                return True
+        return False
+
+    def handle_mouse_up(self, button, pos):
+        child = self.mouse_down_child[button]
+        self.mouse_down_child[button] = None
+        if child:
+            rel_pos = child.mouse_rel_pos(pos)
+            child.handle_mouse_up(button, rel_pos)
+
+    def handle_mouse_move(self, pos):
+        old = self.mouse_in_children
+        new = set()
+        for child in self.children:
+            rel_pos = child.mouse_rel_pos(pos)
+            if rel_pos:
+                new.add(child)
+                if child not in old:
+                    child.handle_mouse_enter()
+                child.handle_mouse_move(rel_pos)
+            elif child in old:
+                child.handle_mouse_exit()
+        self.mouse_in_children = new
+
+    def handle_mouse_enter(self):
+        self.has_mouse_focus = True
+
+    def handle_mouse_exit(self):
+        self.has_mouse_focus = False
+        for child in self.mouse_in_children:
+            child.handle_mouse_exit()
+        self.mouse_in_children = set()
 
     def min_contents_width(self):
         return max(child.min_width() for child in self.children) if self.children else 0
