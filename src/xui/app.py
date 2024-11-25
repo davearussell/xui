@@ -4,6 +4,7 @@ import pygame
 import pygame.locals
 
 from . import keys
+from . import mouse
 from .widget import Widget, Stack, NEEDS_REDRAW, NEEDS_LAYOUT
 
 TIMER_EVENT = pygame.USEREVENT + 1
@@ -114,6 +115,12 @@ class App:
             self.check_timers()
         elif event.type in [pygame.locals.WINDOWFOCUSGAINED, pygame.locals.WINDOWSHOWN]:
             self.window.redraw()
+        elif event.type == pygame.locals.MOUSEBUTTONDOWN:
+            self.window.handle_mouse_down(mouse.event_button(event), event.pos)
+        elif event.type == pygame.locals.MOUSEBUTTONUP:
+            self.window.handle_mouse_up(mouse.event_button(event), event.pos)
+        elif event.type == pygame.locals.MOUSEMOTION:
+            self.window.handle_mouse_move(event.pos)
         else:
             return False
         return True
