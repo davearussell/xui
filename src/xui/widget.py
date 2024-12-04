@@ -60,6 +60,7 @@ class Widget:
         self.rect = pygame.Rect(0, 0, 0, 0)
         self.rel_rect = self.rect
         self.old_rect = self.rect
+        self.bg_surface = None # used only if self.is_overlay()
         self.flags = NEEDS_LAYOUT
         self.root = self
         for k, v in kwargs.items():
@@ -138,6 +139,7 @@ class Widget:
             child.rect = child_rect
             child.rel_rect = child_rect.move(-self.rect.left, -self.rect.top)
             child.surface = self.surface.subsurface(child.rel_rect)
+            child.bg_surface = None
             child.layout()
         if self.rect != self.old_rect:
             if self.rect.size != self.old_rect.size:
@@ -163,6 +165,9 @@ class Widget:
     def has_solid_bg(self):
         return self.bgcolor and pygame.Color(self.bgcolor).a == 255
 
+    def is_overlay(self):
+        return self.bgcolor and pygame.Color(self.bgcolor).a < 255
+
     def redraw(self):
         widget = self
         # If a widget has a transparent background we cannt redraw it in
@@ -177,7 +182,13 @@ class Widget:
 
     def draw(self):
         if self.bgcolor:
-            self.surface.fill(self.bgcolor)
+            if self.is_overlay():
+                if self.bg_surface is None:
+                    self.bg_surface = pygame.Surface(self.rect.size, pygame.SRCALPHA)
+                    self.bg_surface.fill(self.bgcolor)
+                self.surface.blit(self.bg_surface, (0, 0))
+            else:
+                self.surface.fill(self.bgcolor)
         for child in self.children:
             child.draw()
         self.flags &= ~NEEDS_REDRAW
