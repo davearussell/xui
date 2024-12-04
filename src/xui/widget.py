@@ -143,7 +143,9 @@ class Widget:
             if self.rect.size != self.old_rect.size:
                 self.size_updated(self.old_rect.size, self.rect.size)
             self.old_rect = self.rect
-        self.flags = (self.flags | NEEDS_REDRAW) & ~NEEDS_LAYOUT
+            (self.parent or self).redraw()
+
+        self.flags &= ~NEEDS_LAYOUT
 
     def align_children(self, rect):
         x, y = rect.topleft
@@ -158,8 +160,17 @@ class Widget:
             yoff = yspace * (1 if valign == 'bottom' else 0.5 if valign == 'center' else 0)
             yield child, pygame.Rect(x + xoff, y + yoff, child_width, child_height)
 
+    def has_solid_bg(self):
+        return self.bgcolor and pygame.Color(self.bgcolor).a == 255
+
     def redraw(self):
-        self.flags |= NEEDS_REDRAW
+        widget = self
+        # If a widget has a transparent background we cannt redraw it in
+        # isolation; we must also redraw any ancestors that may be visible
+        # behind it.
+        while widget.parent and not widget.has_solid_bg():
+            widget = widget.parent
+        widget.flags |= NEEDS_REDRAW
 
     def relayout(self):
         self.flags |= NEEDS_LAYOUT
