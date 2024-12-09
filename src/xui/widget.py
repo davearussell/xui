@@ -12,6 +12,7 @@ class LayoutError(Exception):
     pass
 
 class Widget:
+    supports_viewport = False
     fixed_width = False
     fixed_height = False
 
@@ -44,6 +45,7 @@ class Widget:
         self.depth = 0
         self.x = 0
         self.y = 0
+        self.viewport = None
         self.rect = pygame.Rect(0, 0, 0, 0)
         self.rel_rect = self.rect
         self.surface = None
@@ -135,9 +137,23 @@ class Widget:
         return False
 
     def mouse_rel_pos(self, pos):
-        if pos is None or not self.rel_rect.collidepoint(pos):
+        if pos is None:
             return None
-        return (pos[0] - self.rel_rect.left, pos[1] - self.rel_rect.top)
+
+        if self.viewport:
+            rect = pygame.Rect(self.rel_rect.left, self.rel_rect.top,
+                               self.viewport.width, self.viewport.height)
+            xoff, yoff = self.viewport.topleft
+        else:
+            rect = self.rel_rect
+            xoff = yoff = 0
+
+        if not rect.collidepoint(pos):
+            return None
+
+        x = pos[0] - self.rel_rect.left
+        y = pos[1] - self.rel_rect.top
+        return pos[0] - rect.left + xoff, pos[1] - rect.top + yoff
 
     def handle_mouse_down(self, button, pos):
         # Iter children in reverse. For most containers, order is not
@@ -297,11 +313,21 @@ class Widget:
 
     def setup_surface(self):
         for child in self.children:
-            child.surface = self.surface.subsurface(child.rel_rect)
+            if child.viewport:
+                if child.supports_viewport:
+                    rect = child.rel_rect.copy()
+                    rect.size = child.viewport.size
+                    child.surface = self.surface.subsurface(rect)
+                else:
+                    child.surface = pygame.Surface(child.rect.size, pygame.SRCALPHA)
+            else:
+                child.surface = self.surface.subsurface(child.rel_rect)
             child.setup_surface()
 
     def redraw(self):
         self._redraw = True
+        if self.viewport:
+            self.parent.redraw()
 
     def relayout(self):
         self._laid_out = None
@@ -319,8 +345,13 @@ class Widget:
     def draw(self):
         if self.bgcolor:
             self.surface.fill(self.bgcolor)
+        elif self.viewport and not self.supports_viewport:
+            # In this mode we have our own surface so must clear previous contents before drawing
+            self.surface.fill((0, 0, 0, 0))
         for child in self.children:
             child.draw()
+            if child.viewport and not child.supports_viewport:
+                self.surface.blit(child.surface, child.rel_rect, child.viewport)
         if self.border_thickness:
             rect = self.surface.get_rect()
             color = self.border_color or self.color
