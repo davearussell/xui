@@ -7,3 +7,4 @@ from .line_edit import LineEdit
 from .dropdown import Dropdown
 from .button import Button, IconButton, PushButton, CheckBox, RadioButtonGroup
 from .button import DropdownButton, XButton, UpButton, DownButton, PlusButton, MinusButton
+from .combobox import ComboBox
