@@ -30,6 +30,9 @@ class Widget:
     color = 'white'
     bgcolor = None
 
+    border_thickness = 0
+    border_color = None
+
     def __init__(self, children=None, **kwargs):
         self.children = children or []
         self.parent = None
@@ -282,4 +285,8 @@ class Widget:
             self.surface.fill(self.bgcolor)
         for child in self.children:
             child.draw()
+        if self.border_thickness:
+            rect = self.surface.get_rect()
+            color = self.border_color or self.color
+            pygame.draw.rect(self.surface, color, rect, self.border_thickness)
         self._redraw = False
