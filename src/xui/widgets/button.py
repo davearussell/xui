@@ -120,3 +120,69 @@ class RadioButtonGroup:
         self.select_button(i)
         if self.select_cb:
             self.select_cb(i)
+
+
+class DropdownButton(IconButton):
+    def draw_icon(self, color):
+        x0 = self.width / 4
+        x1 = x0 * 2
+        x2 = x0 * 3
+        y0 = self.height / 4
+        y1 = y0 * 3
+        pygame.draw.polygon(self.surface, color, [(x0, y0), (x2, y0), (x1, y1)])
+
+
+class XButton(IconButton):
+    def draw_icon(self, color):
+        x0 = self.width // 4
+        x1 = x0 * 3
+        y0 = self.height // 4
+        y1 = y0 * 3
+        pygame.draw.line(self.surface, color,  (x0, y0), (x1, y1), 3)
+        pygame.draw.line(self.surface, color,  (x0, y1), (x1, y0), 3)
+
+
+class UpButton(IconButton):
+    def draw_icon(self, color):
+        x0 = self.width // 4
+        x1 = x0 * 2
+        x2 = x0 * 3
+        y0 = self.height // 4
+        y1 = y0 * 2
+        y2 = y0 * 3
+        pygame.draw.line(self.surface, color,  (x1, y0), (x1, y2), 3)
+        pygame.draw.line(self.surface, color,  (x0, y1), (x1, y0), 3)
+        pygame.draw.line(self.surface, color,  (x2, y1), (x1, y0), 3)
+
+
+class DownButton(IconButton):
+    def draw_icon(self, color):
+        x0 = self.width // 4
+        x1 = x0 * 2
+        x2 = x0 * 3
+        y0 = self.height // 4
+        y1 = y0 * 2
+        y2 = y0 * 3
+        pygame.draw.line(self.surface, color,  (x1, y0), (x1, y2), 3)
+        pygame.draw.line(self.surface, color,  (x0, y1), (x1, y2), 3)
+        pygame.draw.line(self.surface, color,  (x2, y1), (x1, y2), 3)
+
+
+class PlusButton(IconButton):
+    def draw_icon(self, color):
+        x0 = self.width // 4
+        x1 = x0 * 2
+        x2 = x0 * 3
+        y0 = self.height // 4
+        y1 = y0 * 2
+        y2 = y0 * 3
+        pygame.draw.line(self.surface, color, (x0, y1), (x2, y1))
+        pygame.draw.line(self.surface, color, (x1, y0), (x1, y2))
+
+
+class MinusButton(IconButton):
+    def draw_icon(self, color):
+        x0 = self.width // 4
+        x1 = x0 * 3
+        y = self.height // 2
+        pygame.draw.line(self.surface, color, (x0, y), (x1, y))
