@@ -49,7 +49,11 @@ class VBox(Widget):
             self.error("height=%d, avail=%d, children require %r", self.height, height, min_heights)
         max_heights = [child.max_height() for child in self.children]
         heights = divide_space(height, min_heights, max_heights)
+        leftover = height - sum(heights)
         for child, child_height in zip(self.children, heights):
+            if leftover and (child.valign or self.child_valign) == 'fill':
+                child_height += leftover
+                leftover = 0
             child.set_height(child_height)
             child.y = y
             y += child_height + self.spacing
@@ -73,7 +77,11 @@ class HBox(Widget):
             self.error("width=%d, avail=%d, children require %r", self.width, width, min_widths)
         max_widths = [child.max_width() for child in self.children]
         widths = divide_space(width, min_widths, max_widths)
+        leftover = width - sum(widths)
         for child, child_width in zip(self.children, widths):
+            if leftover and (child.halign or self.child_halign) == 'fill':
+                child_width += leftover
+                leftover = 0
             child.set_width(child_width)
             child.x = x
             x += child_width + self.spacing
@@ -127,6 +135,8 @@ class GridBox(Widget):
                     continue
                 child.x = x
                 child_width = min(col_width, child.max_width())
+                if child.halign == 'fill':
+                    child_width = col_width
                 child.set_width(child_width)
                 if child_width < col_width:
                     gap = col_width - child_width
@@ -150,6 +160,8 @@ class GridBox(Widget):
                     continue
                 child.y = y
                 child_height = min(row_height, child.max_height())
+                if child.valign == 'fill':
+                    child_height = row_height
                 child.set_height(child_height)
                 if child_height < row_height:
                     gap = row_height - child_height

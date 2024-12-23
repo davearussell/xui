@@ -250,6 +250,8 @@ class Widget:
             if lo > width:
                 self.error("width=%d, margin=%d, child %s requires %d",
                            self.width, self.margin, type(child).__name__, lo)
+            if child.halign == 'fill':
+                hi = width
             child.set_width(min(hi, width))
             gap = width - child.width
             align = child.halign or self.child_halign
@@ -265,6 +267,8 @@ class Widget:
             if lo > height:
                 self.error("height=%d, margin=%d, child %s requires %d",
                            self.height, self.margin, type(child).__name__, lo)
+            if child.valign == 'fill':
+                hi = height
             child.set_height(min(hi, height))
             gap = height - child.height
             align = child.valign or self.child_valign
