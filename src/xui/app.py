@@ -10,6 +10,19 @@ from .widget import Widget
 TIMER_EVENT = pygame.USEREVENT + 1
 
 
+def update_init_settings(cls, settings):
+    """Arranges for new instances of this class and its subclasses
+    to be created with the specified settings by default."""
+    relevant = {k: v for k, v in settings.items() if k.islower()}
+    if cls.__name__ in settings:
+        relevant |= settings[cls.__name__]
+    for k, v in relevant.items():
+        if hasattr(cls, k):
+            setattr(cls, k, v)
+    for subcls in cls.__subclasses__():
+        update_init_settings(subcls, settings)
+
+
 class Screen(Widget):
     fixed_width = True
     fixed_height = True
@@ -25,6 +38,12 @@ class Screen(Widget):
         self.rect = self.surface.get_rect()
         self.size = self.rect.size
         self.focus_widget = None
+
+    def apply_settings(self, settings):
+        super().apply_settings(settings)
+        update_init_settings(Widget, settings)
+        self.redraw()
+        self.relayout()
 
     def handle_keydown(self, event, keystroke):
         """Tries to find a widget to handle this keystroke, returning True if so or
@@ -122,6 +141,9 @@ class App:
 
     def remove_window(self, window):
         self.screen.children.remove(window)
+
+    def apply_settings(self, settings):
+        self.screen.apply_settings(settings)
 
     def log(self, msg):
         print("%.3fs: %s" % (time.time() - self.t0, msg))

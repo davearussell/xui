@@ -26,12 +26,17 @@ class Widget:
     child_valign = None
     margin = 0
     spacing = 0
+    border_thickness = 0
 
+    # Default settings (not all widgets use all of these)
     color = 'white'
     bgcolor = None
-
-    border_thickness = 0
+    highlight_color = 'yellow'
+    disabled_color = 'grey'
     border_color = None
+    font = 'Liberation Mono'
+    font_size = 20
+
 
     def __init__(self, children=None, **kwargs):
         self.children = children or []
@@ -53,6 +58,27 @@ class Widget:
         self.mouse_down_child = {button: None for button in MOUSE_BUTTONS.values()}
         self.has_mouse_focus = False
         self.has_focus = False
+
+    def _apply_settings(self, settings):
+        relevant = {k: v for k, v in settings.items() if k.islower()}
+        cls_name = type(self).__name__
+        if cls_name in settings:
+            relevant |= settings[cls_name]
+        for k, v in relevant.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
+
+    def apply_settings(self, settings):
+        self._apply_settings(settings)
+        self.apply_child_settings(settings)
+        self.settings_updated()
+
+    def apply_child_settings(self, settings):
+        for child in self.children:
+            child.apply_settings(settings)
+
+    def settings_updated(self):
+        pass
 
     @property
     def size(self):
