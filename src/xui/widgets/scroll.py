@@ -98,6 +98,9 @@ class ScrollArea(Widget):
     bar_thickness = 20
     bar_bgcolor = (64, 64, 64)
 
+    # Hide bars if body is small enough to fit without scrolling
+    autohide_bars = True
+
     horizontal = False
     vertical = False
     left_bar = False
@@ -129,6 +132,8 @@ class ScrollArea(Widget):
         self.children += self.bars
         self.vertical |= (self.left_bar or self.right_bar)
         self.horizontal |= (self.top_bar or self.bottom_bar)
+        self.show_vbars = self.vertical
+        self.show_hbars = self.horizontal
 
     def apply_settings(self, settings):
         super().apply_settings(settings)
@@ -140,21 +145,35 @@ class ScrollArea(Widget):
                 dimension: self.bar_thickness,
             })
 
+    def need_vbars(self):
+        space = self.height - 2 * self.margin - (self.top_bar + self.bottom_bar) * self.bar_thickness
+        return self.body.max_height() > space
+
+    def need_hbars(self):
+        space = self.width - 2 * self.margin - (self.left_bar + self.right_bar) * self.bar_thickness
+        return self.body.max_width() > space
+
+    def vbar_width(self):
+        if not self.show_vbars:
+            return 0
+        return self.bar_thickness * (self.left_bar + self.right_bar)
+
+    def hbar_height(self):
+        if not self.show_hbars:
+            return 0
+        return self.bar_thickness * (self.top_bar + self.bottom_bar)
+
     def min_contents_height(self):
-        bar_height = self.bar_thickness * (bool(self.top_bar) + bool(self.bottom_bar))
-        return bar_height + (0 if self.vertical else self.body.min_height())
+        return self.hbar_height() + (0 if self.vertical else self.body.min_height())
 
     def max_contents_height(self):
-        bar_height = self.bar_thickness * (bool(self.top_bar) + bool(self.bottom_bar))
-        return bar_height + self.body.max_height()
+        return self.hbar_height() + self.body.max_height()
 
     def min_contents_width(self):
-        bar_width = self.bar_thickness * (bool(self.left_bar) + bool(self.right_bar))
-        return bar_width + (0 if self.horizontal else self.body.min_width())
+        return self.vbar_width() + (0 if self.horizontal else self.body.min_width())
 
     def max_contents_width(self):
-        bar_width = self.bar_thickness * (bool(self.left_bar) + bool(self.right_bar))
-        return bar_width + self.body.max_width()
+        return self.vbar_width() + self.body.max_width()
 
     def body_rect(self):
         width = max(self.body.width, self.body.viewport.width)
@@ -162,13 +181,13 @@ class ScrollArea(Widget):
         return pygame.Rect(0, 0, width, height)
 
     def vlayout(self):
-        bar_height = self.bar_thickness * (bool(self.top_bar) + bool(self.bottom_bar))
-        self.body.viewport.height = self.height - 2 * self.margin - bar_height
+        self.body.viewport.height = self.height - 2 * self.margin - self.hbar_height()
 
         y = self.y + self.margin
         if self.top_bar:
+            self._top_bar.height = self.bar_thickness if self.show_hbars else 0
             self._top_bar.y = y
-            y += self.bar_thickness
+            y += self._top_bar.height
         self.body.y = y
         if self.vertical:
             if self.left_bar:
@@ -183,16 +202,17 @@ class ScrollArea(Widget):
             self.body.set_height(self.body.viewport.height)
         self.body.vlayout()
         if self.bottom_bar:
+            self._bottom_bar.height = self.bar_thickness if self.show_hbars else 0
             self._bottom_bar.y = self.body.y + self.body.viewport.height
 
     def hlayout(self):
-        bar_width = self.bar_thickness * (bool(self.left_bar) + bool(self.right_bar))
-        self.body.viewport.width = self.width - 2 * self.margin - bar_width
+        self.body.viewport.width = self.width - 2 * self.margin - self.vbar_width()
 
         x = self.x + self.margin
         if self.left_bar:
+            self._left_bar.width = self.bar_thickness if self.show_vbars else 0
             self._left_bar.x = x
-            x += self.bar_thickness
+            x += self._left_bar.width
         self.body.x = x
         if self.horizontal:
             if self.top_bar:
@@ -207,7 +227,20 @@ class ScrollArea(Widget):
             self.body.set_width(self.body.viewport.width)
         self.body.hlayout()
         if self.right_bar:
+            self._right_bar.width = self.bar_thickness if self.show_vbars else 0
             self._right_bar.x = self.body.x + self.body.viewport.width
+
+    def finalise_layout(self):
+        super().finalise_layout()
+        # It's tricky to work out ahead of time whether we'll need scroll bars, so we guess.
+        # If it turns out we guessed wrong we need to redo the layout.
+        if self.autohide_bars:
+            if self.show_vbars != self.need_vbars():
+                self.show_vbars = not self.show_vbars
+                self.relayout()
+            if self.show_hbars != self.need_hbars():
+                self.show_hbars = not self.show_hbars
+                self.relayout()
 
     def ensure_visible(self, rect):
         body_rect = self.body_rect()
