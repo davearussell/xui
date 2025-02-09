@@ -1,7 +1,10 @@
+import os
+
 import pygame
 
 from .label import Label
 from .scroll import ScrollArea
+from .dropdown import Dropdown
 
 
 def next_word(text, i):
@@ -34,10 +37,13 @@ class LineEdit(ScrollArea):
 
     num_chars = 30
 
-    def __init__(self, text='', update_cb=None, commit_cb=None, **kwargs):
+    def __init__(self, text='', update_cb=None, commit_cb=None, completions=None, **kwargs):
         super().__init__(Label(text), **kwargs)
         self.update_cb = update_cb
         self.commit_cb = commit_cb
+        self.completions = sorted(completions or [])
+        self.dropdown = Dropdown(self, update_cb=self.comp_update, commit_cb=self.comp_commit,
+                                 autohide_bars=False)
         self.cursor = 0 # index of character after cursor
 
     def set_enabled(self, enabled):
@@ -46,6 +52,17 @@ class LineEdit(ScrollArea):
 
     def max_contents_width(self):
         return self.num_chars * self.body.char_width
+
+    def comp_commit(self, _):
+        self.set_value(self.dropdown.choice)
+        self.commit_cb()
+
+    def comp_update(self, _):
+        self.set_value(self.dropdown.choice)
+
+    def focus_lost(self):
+        if self.dropdown.active:
+            self.dropdown.close()
 
     def update_cursor(self, cursor):
         if cursor < 0:
@@ -73,10 +90,23 @@ class LineEdit(ScrollArea):
         if self.update_cb:
             self.update_cb(text)
 
+    def refresh_dropdown(self):
+        if not self.has_focus:
+            return
+        completions = [word for word in self.completions if word.startswith(self.body.text)]
+        if completions and not self.dropdown.active:
+            self.dropdown.open()
+        elif self.dropdown.active and not completions:
+            self.dropdown.close()
+        if completions != self.dropdown.choices:
+            self.dropdown.set_choices(completions)
+
     def handle_keydown(self, event, keystroke):
+        if self.dropdown.active and keystroke in ['up', 'down']:
+            return self.dropdown
+
         text = self.body.text
         cursor = self.cursor
-
         if keystroke in ['backspace', 'CTRL-backspace']:
             n = prev_word_offset(text, cursor) if 'CTRL' in keystroke else 1
             text = text[:cursor - n] + text[cursor:]
@@ -104,8 +134,14 @@ class LineEdit(ScrollArea):
         elif 'ALT-' not in keystroke and event.unicode and 32 <= ord(event.unicode) <= 126:
             text = text[:cursor] + event.unicode + text[cursor:]
             self.update_text(text, cursor + 1)
+        elif keystroke == 'tab':
+            if self.dropdown.active:
+                text = os.path.commonprefix(self.dropdown.choices)
+                if text != self.body.text:
+                    self.update_text(text, cursor=len(text))
         else:
             return False
+        self.refresh_dropdown()
         return True
 
     def update_viewport(self):
