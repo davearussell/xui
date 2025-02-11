@@ -255,8 +255,11 @@ class Widget:
             child.set_width(min(hi, width))
             gap = width - child.width
             align = child.halign or self.child_halign
-            offset = gap * (1 if align == 'right' else 0.5 if align == 'center' else 0)
-            child.x = x + offset
+            if align == 'fixed':
+                child.x = child.rect.left
+            else:
+                offset = gap * (1 if align == 'right' else 0.5 if align == 'center' else 0)
+                child.x = x + offset
             child.hlayout()
 
     def vlayout(self):
@@ -272,8 +275,11 @@ class Widget:
             child.set_height(min(hi, height))
             gap = height - child.height
             align = child.valign or self.child_valign
-            offset = gap * (1 if align == 'bottom' else 0.5 if align == 'center' else 0)
-            child.y = y + offset
+            if align == 'fixed':
+                child.y = child.rect.top
+            else:
+                offset = gap * (1 if align == 'bottom' else 0.5 if align == 'center' else 0)
+                child.y = y + offset
             child.vlayout()
 
     def finalise_layout(self):
