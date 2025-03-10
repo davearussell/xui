@@ -2,10 +2,11 @@ import time
 
 import pygame
 import pygame.locals
+import pygame._sdl2
 
 from . import keys
 from . import mouse
-from .widget import Widget
+from .widget import Widget, UNLIMITED
 
 TIMER_EVENT = pygame.USEREVENT + 1
 
@@ -34,10 +35,14 @@ class Screen(Widget):
     def __init__(self, app):
         super().__init__()
         self.app = app
-        self.surface = pygame.display.set_mode(flags=pygame.FULLSCREEN)
+        self.init_screen()
+        pygame.display.set_caption(app.title)
         self.rect = self.surface.get_rect()
         self.size = self.rect.size
         self.focus_widget = None
+
+    def init_screen(self):
+        self.surface = pygame.display.set_mode(flags=pygame.FULLSCREEN)
 
     def apply_settings(self, settings):
         super().apply_settings(settings)
@@ -124,12 +129,70 @@ class Screen(Widget):
         self.setup_surface()
         self.redraw()
 
+
+class FixedSizeWindow(Screen):
+    def __init__(self, app, resolution):
+        self.resolution = resolution
+        super().__init__(app)
+
+    def init_screen(self):
+        self.surface = pygame.display.set_mode(self.resolution)
+
+
+class AutoSizeWindow(FixedSizeWindow):
+    def __init__(self, app):
+        super().__init__(app, (0, 0))
+        self._positioned = False
+
+    def init_screen(self):
+        # Order matters here: display.Info() gives the screen resolution before the
+        # first call to display.set_mode, and the current window size afterwards.
+        info = pygame.display.Info()
+        self._screen_res = (info.current_w, info.current_h)
+        super().init_screen()
+
+    def hlayout(self):
+        child_width = max(child.max_width() for child in self.children) if self.children else 0
+        assert child_width < UNLIMITED
+        self.width = child_width + 2 * self.margin
+        super().hlayout()
+
+    def vlayout(self):
+        child_height = max(child.max_height() for child in self.children) if self.children else 0
+        assert child_height < UNLIMITED
+        self.height = child_height + 2 * self.margin
+        super().vlayout()
+
+    def finalise_layout(self):
+        self.resolution = (self.width, self.height)
+        self.init_screen()
+        super().finalise_layout()
+
+    def draw(self):
+        if not self._positioned:
+            # The first time we are drawn, position ourselves in the center of the screen.
+            # If we are resized, do not reposition (i.e. keep topleft corner in same place)
+            x = max(0, (self._screen_res[0] - self.width) // 2)
+            y = max(0, (self._screen_res[1] - self.height) // 2)
+            pygame._sdl2.Window.from_display_module().position = (x, y)
+            self._positioned = True
+        super().draw()
+
+
 class App:
     framerate = 30
+    fullscreen = True
+    resolution = None
+    title = 'XUI'
 
     def __init__(self):
         pygame.init()
-        self.screen = Screen(self)
+        if self.fullscreen:
+            self.screen = Screen(self)
+        elif self.resolution:
+            self.screen = FixedSizeWindow(self, self.resolution)
+        else:
+            self.screen = AutoSizeWindow(self)
         self.size = self.screen.size
         self.timers = []
         self.exiting = False
