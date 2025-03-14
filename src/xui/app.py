@@ -94,7 +94,8 @@ class Screen(Widget):
                     while parent.bgcolor is None:
                         parent = parent.parent
                     widget.surface.fill(parent.bgcolor)
-                widget.draw()
+                if not widget.hide:
+                    widget.draw()
 
             if len(self.children) > 1:
                 region = widgets[0].rect.unionall([w.rect for w in widgets[1:]])

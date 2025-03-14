@@ -30,6 +30,7 @@ class Widget:
     border_thickness = 0
 
     enabled = True
+    hide = False
 
     # Default settings (not all widgets use all of these)
     color = 'white'
@@ -363,9 +364,10 @@ class Widget:
             # In this mode we have our own surface so must clear previous contents before drawing
             self.surface.fill((0, 0, 0, 0))
         for child in self.children:
-            child.draw()
-            if child.viewport and not child.supports_viewport:
-                self.surface.blit(child.surface, child.rel_rect, child.viewport)
+            if not child.hide:
+                child.draw()
+                if child.viewport and not child.supports_viewport:
+                    self.surface.blit(child.surface, child.rel_rect, child.viewport)
         if self.border_thickness:
             rect = self.surface.get_rect()
             color = self.border_color or self.color
