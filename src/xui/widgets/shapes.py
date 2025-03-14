@@ -39,3 +39,17 @@ class VBar(Widget):
         rect = pygame.Rect(0, self.margin, self.bar_width, self.height - 2 * self.margin)
         rect.centerx = self.width // 2
         pygame.draw.rect(self.surface, self.color, rect)
+
+
+class Square(Widget):
+    fixed_width = True
+    fixed_height = True
+    side_length = 10
+
+    @property
+    def width(self):
+        return self.side_length
+
+    @property
+    def height(self):
+        return self.side_length

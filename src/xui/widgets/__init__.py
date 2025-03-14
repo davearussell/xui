@@ -8,5 +8,5 @@ from .dropdown import Dropdown
 from .button import Button, IconButton, PushButton, CheckBox, RadioButtonGroup
 from .button import DropdownButton, XButton, UpButton, DownButton, PlusButton, MinusButton
 from .combobox import ComboBox
-from .shapes import HBar, VBar
+from .shapes import HBar, VBar, Square
 from .text_area import TextArea
