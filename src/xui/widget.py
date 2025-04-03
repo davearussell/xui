@@ -124,6 +124,7 @@ class Widget:
         if old_focus:
             old_focus.has_focus = False
             old_focus.focus_lost()
+            old_focus.redraw()
         self.has_focus = True
         self.focus_gained()
         self.redraw()
